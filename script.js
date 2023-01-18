@@ -26,18 +26,27 @@ function mentionAuthor(message) {
 function grabQuotes(content) {
 	results = []
 	string = ""
+
+	if (!content.includes(" \"")) { // No quotes found in survey request
+		console.log("Quote Content Error!")
+		return(results)
+	}
+	content = content.substring(content.indexOf(" \"")).trim() // Skip to the quote
+	
 	for (var i=0; i<content.length; i++) {
 		if (i != 0 && content[i] == '"' && content[i-1] == '/') { // Character is an escaped quote
 			string += '"' // Add the quote to the string
 		}
 		else if (i != 0 && content[i] == '"' && content[i-1] != '/') { // End of quote
 			results.push(string) // Update the string to the array
-			content = content.substring(i + 1) // Skip past everything before the quote
+			string = "" // Clear the string
+			content = content.substring(i) // Skip past everything before the quote
 			if (content.includes(" \"")) { // Content contains more quotes
-				i = content.indexOf(" \"") // Update 'i' to be the proper index of the next quote
+				content = content.substring(content.indexOf(" \"")).trim() // Skip to the next quote
+				i = 0 // Reset 'i' to start over for the new quote
 			}
 		}
-		else { // Character is anything except a quote.
+		else if (i != 0 || content[i] != '"') { // Character is anything except a quote, if the index is 0
 			string += content.charAt(i) // Add the normal character to the string
 		}
 	}
@@ -45,24 +54,26 @@ function grabQuotes(content) {
 }
 
 function grabEmotes(content) {
+	// Will need to check individually to see if the emoji index is chronologically found within a quote.
 	results = content.match(/<a?:.+?:\d{18}>|\p{Extended_Pictographic}/gu) // Pre ES6 way of parsing emoji's from messages
-	for (e of results) {
+	for (e of results) { // Loop through each emoji found
 		if (!content.includes(e + " \"")) { // Emoji is not represented as a survey option
-			results.pop(e)
+			results.splice(results.indexOf(e), 1) // Remove the emoji from the list
 		}
 	}
 	return(results)
 }
 
-function parseCommand(message) {
-	if (message.content.charAt(0) != '"') { // Structure of the command is invalid
+function conductSurvey(message) {
+	console.log("Conducting Survey")
+	if (message.content.indexOf("!survey \"") != 0) { // Structure of the command is invalid
 		// Invalid Formatting Error !!!
+		console.log("Formatting Error!")
 		return
 	}
 
 	quotes = grabQuotes(message.content) // Store all the quotes in the survey
 	emotes = grabEmotes(message.content) // Store all the emojis used in the survey
-	reply = "" // Stores the reply message of the survey command
 	
 	// Same First and Last Index Error !!!
 	for (var i=0; i<quotes.length - emotes.length; i++) { // Add extra spacing
@@ -72,18 +83,21 @@ function parseCommand(message) {
 	console.log(quotes)
 	console.log(emotes)
 
+	header = "" // Stores the heading of the formatted reply
+	body = "" // Stores the body of formatted emojis and options
+
 	for (var i=0; i<quotes.length; i++) {
 		if (emotes[i] == "") { // The stored emoji is just null
-			reply += quotes[i] // Add the next quote to the reply
+			header += quotes[i] // Add the next quote to the reply
 		}
 		else {
-			reply += "\n *\t" + emotes[i] + " " + quotes[i] // Add the emoji option to the reply
+			body += "\n *\t" + emotes[i] + " " + quotes[i] // Add the emoji option to the reply
 		}
 	}
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
-		content: reply + "\n *\t"
+		content: header + "\n *\t" + body + "\n *\t"
 	}).then((message) => { // Add the options to the survey
 		for (e of emotes) { // Loop through the options
 			if (e != "") { // The emoji is not null
@@ -100,8 +114,9 @@ client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
 		return;
 	}
+	console.log(message.content)
 	if (message.content.charAt(0) == '!') {
-		parseCommand(message)
+		conductSurvey(message)
 	}
 })
 
