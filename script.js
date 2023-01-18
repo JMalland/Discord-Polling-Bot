@@ -117,7 +117,7 @@ function conductSurvey(message) {
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
-		content: header + "\n *\t" + body + "\n * Ends In: --:--:--" + timestamp
+		content: header + "\n *\t" + body + "\n * Ends In: " + timestamp
 	}).then((message) => { // Add the options to the survey
 		for (e of emotes) { // Loop through the options
 			if (e != "") { // The emoji is not null
