@@ -1,6 +1,6 @@
 
 // Require the necessary discord.js classes
-const { Client, GatewayIntentBits, PermissionsBitField, quote } = require('discord.js');
+const { Client, GatewayIntentBits, PermissionsBitField, quote, time } = require('discord.js');
 const { token } = require('./config.json');
 
 // Create a new client instance
@@ -18,10 +18,6 @@ client.once('ready', () => {
 	console.log('Ready!');
 	return;
 });
-
-function mentionAuthor(message) {
-	return("<@"+message.author.id+">")
-}
 
 function grabQuotes(content) {
 	results = []
@@ -75,6 +71,26 @@ function conductSurvey(message) {
 	quotes = grabQuotes(message.content) // Store all the quotes in the survey
 	emotes = grabEmotes(message.content) // Store all the emojis used in the survey
 	
+	times = message.content.substring(message.content.indexOf(quotes[quotes.length - 1]) + quotes[quotes.length - 1].length) // Cut out the time requirement, if it exists
+	
+	if (times.includes(":")) { // The survey request has a time constraint
+		times = times.split(":") // Keep the timestamps stored in the bracket
+	}
+	else { // The survey request lasts for the default amount of time
+		times = [0, 0, 0, 0]
+	}
+
+	hours = 24
+	minutes = 60
+	seconds = 60
+
+	d = parseInt(times[0]) // Number of days
+	h = parseInt(times[1]) // Number of hours
+	m = parseInt(times[2]) // Number of minutes
+	s = parseInt(times[3]) // Number of seconds
+
+	timestamp = "<t:" + (Date.now() + (d * hours * minutes * seconds)) + "R:>" + "<t:" + (Date.now() + (h * minutes * seconds)) + "R:>" + " <t:" + (Date.now() + (m * minutes)) + ":R>" + " <t:" + (Date.now() + s) + "R:>"
+	
 	// Same First and Last Index Error !!!
 	for (var i=0; i<quotes.length - emotes.length; i++) { // Add extra spacing
 		emotes.unshift("") // Add an empty string, just to line up the quotes and emojis
@@ -82,6 +98,7 @@ function conductSurvey(message) {
 
 	console.log(quotes)
 	console.log(emotes)
+	console.log(d + " Days. " + h + " Hours. " + m + " Mins. " + s + " Secs.")
 
 	header = "" // Stores the heading of the formatted reply
 	body = "" // Stores the body of formatted emojis and options
@@ -97,7 +114,7 @@ function conductSurvey(message) {
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
-		content: header + "\n *\t" + body + "\n *\t"
+		content: header + "\n *\t" + body + "\n * Ends In: --:--:--" //+ timestamp
 	}).then((message) => { // Add the options to the survey
 		for (e of emotes) { // Loop through the options
 			if (e != "") { // The emoji is not null
