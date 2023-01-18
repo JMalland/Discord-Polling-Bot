@@ -15,7 +15,7 @@ const client = new Client({
 
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
-	console.log('Ready!');
+	console.log('Running!');
 	return;
 });
 
@@ -23,37 +23,72 @@ function mentionAuthor(message) {
 	return("<@"+message.author.id+">")
 }
 
-function parseCommand(message) {
-	const emotes = (str) => str.match(/<a?:.+?:\d{18}>|\p{Extended_Pictographic}/gu); // Pre ES6 way of parsing emoji's from messages
-	msg = message.content.substring(message.content.indexOf(" ") + 1) // Skip past the initial command
-	header = "" // Header at the beginning of the reply survey
-	while (msg.charAt(0) != '"') { // Mentions a specific Role, User, Link, Etc
-		header += msg.substring(0, msg.indexOf(" ")) + ", " // Create the @Mention tag
-		msg = msg.substring(msg.indexOf(" ") + 1) // Skip everything before the current @Mention
+function grabQuotes(content) {
+	results = []
+	string = ""
+	for (var i=0; i<content.length; i++) {
+		if (i != 0 && content[i] == '"' && content[i-1] == '/') { // Character is an escaped quote
+			string += '"' // Add the quote to the string
+		}
+		else if (i != 0 && content[i] == '"' && content[i-1] != '/') { // End of quote
+			results.push(string) // Update the string to the array
+			content = content.substring(i + 1) // Skip past everything before the quote
+			if (content.includes(" \"")) { // Content contains more quotes
+				i = content.indexOf(" \"") // Update 'i' to be the proper index of the next quote
+			}
+		}
+		else { // Character is anything except a quote.
+			string += content.charAt(i) // Add the normal character to the string
+		}
 	}
-	if (msg.charAt(0) != '"') { // Structure of the command is invalid
+	return(results)
+}
+
+function grabEmotes(content) {
+	results = content.match(/<a?:.+?:\d{18}>|\p{Extended_Pictographic}/gu) // Pre ES6 way of parsing emoji's from messages
+	for (e of results) {
+		if (!content.includes(e + " \"")) { // Emoji is not represented as a survey option
+			results.pop(e)
+		}
+	}
+	return(results)
+}
+
+function parseCommand(message) {
+	if (message.content.charAt(0) != '"') { // Structure of the command is invalid
 		// Invalid Formatting Error !!!
 		return
 	}
+
+	quotes = grabQuotes(message.content) // Store all the quotes in the survey
+	emotes = grabEmotes(message.content) // Store all the emojis used in the survey
+	reply = "" // Stores the reply message of the survey command
+	
 	// Same First and Last Index Error !!!
-	quotes = msg.substring(msg.indexOf("\"") + 1, msg.lastIndexOf("\"")) // Make the quote hold everything between the first and last quotations
-	msg = msg.substring(msg.lastIndexOf("\"") + 1) // Skip everything except the emojis and opinions
-	emojis = emotes(msg) // Store the emojis
-	opinions = [] // Store the opinions
-	for (var i=0; i<emojis.length; i++) {
-		msg = msg.substring(msg.indexOf(emojis[i]) + 2) // Skip everything before the current emoji
-		opinions.push(msg.substring(0, i < emojis.length - 1 ? msg.indexOf(emojis[i+1]) : msg.length)) // Add the text between emojis to the opinions
+	for (var i=0; i<quotes.length - emotes.length; i++) { // Add extra spacing
+		emotes.unshift("") // Add an empty string, just to line up the quotes and emojis
 	}
-	reply = header + "\"" + quotes + "\"\n * " // Store the header of the reply
-	for (var i=0; i<emojis.length; i++) { // Loop through each option
-		reply += "\n * " + emojis[i] + "  " + opinions[i] // Add the option and corresponding emoji
+
+	console.log(quotes)
+	console.log(emotes)
+
+	for (var i=0; i<quotes.length; i++) {
+		if (emotes[i] == "") { // The stored emoji is just null
+			reply += quotes[i] // Add the next quote to the reply
+		}
+		else {
+			reply += "\n *\t" + emotes[i] + " " + quotes[i] // Add the emoji option to the reply
+		}
 	}
+
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
-		content: reply + "\n * "
+		content: reply + "\n *\t"
 	}).then((message) => { // Add the options to the survey
-		for (e of emojis) { // Loop through the options
-			message.react(e) // Add the emoji reaction
+		for (e of emotes) { // Loop through the options
+			if (e != "") { // The emoji is not null
+				message.react(e) // Add the emoji reaction
+			}
 		}
 	})
 	.catch(() => {
@@ -65,13 +100,9 @@ client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
 		return;
 	}
-	console.log(message)
 	if (message.content.charAt(0) == '!') {
 		parseCommand(message)
 	}
-	//if (message.content.substring(0, 7) === '!survey') {
-	//	message.channel.send("Hi! What's your name?")
-	//}
 })
 
 // Login to Discord with your client's token
