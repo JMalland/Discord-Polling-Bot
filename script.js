@@ -15,7 +15,7 @@ const client = new Client({
 
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
-	console.log('Running!');
+	console.log('Ready!');
 	return;
 });
 
