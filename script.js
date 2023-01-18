@@ -52,6 +52,9 @@ function grabQuotes(content) {
 function grabEmotes(content) {
 	// Will need to check individually to see if the emoji index is chronologically found within a quote.
 	results = content.match(/<a?:.+?:\d{18}>|\p{Extended_Pictographic}/gu) // Pre ES6 way of parsing emoji's from messages
+	if (results == null) { // No emojis found
+		return([]) // Return an empty list
+	}
 	for (e of results) { // Loop through each emoji found
 		if (!content.includes(e + " \"")) { // Emoji is not represented as a survey option
 			results.splice(results.indexOf(e), 1) // Remove the emoji from the list
@@ -71,25 +74,25 @@ function conductSurvey(message) {
 	quotes = grabQuotes(message.content) // Store all the quotes in the survey
 	emotes = grabEmotes(message.content) // Store all the emojis used in the survey
 	
-	times = message.content.substring(message.content.indexOf(quotes[quotes.length - 1]) + quotes[quotes.length - 1].length) // Cut out the time requirement, if it exists
+	times = message.content.substring(message.content.indexOf(quotes[quotes.length - 1]) + quotes[quotes.length - 1].length + 1).trim() // Cut out the time requirement, if it exists
 	
 	if (times.includes(":")) { // The survey request has a time constraint
-		times = times.split(":") // Keep the timestamps stored in the bracket
+		times = times.split(":")
 	}
 	else { // The survey request lasts for the default amount of time
 		times = [0, 0, 0, 0]
 	}
 
-	hours = 24
-	minutes = 60
-	seconds = 60
+	HOURS = 24
+	MINUTES = 60
+	SECONDS = 60
 
 	d = parseInt(times[0]) // Number of days
 	h = parseInt(times[1]) // Number of hours
 	m = parseInt(times[2]) // Number of minutes
 	s = parseInt(times[3]) // Number of seconds
 
-	timestamp = "<t:" + (Date.now() + (d * hours * minutes * seconds)) + "R:>" + "<t:" + (Date.now() + (h * minutes * seconds)) + "R:>" + " <t:" + (Date.now() + (m * minutes)) + ":R>" + " <t:" + (Date.now() + s) + "R:>"
+	timestamp = "<t:" + (parseInt(Date.now()/1000) + (d * HOURS * MINUTES * SECONDS) + (h * MINUTES * SECONDS) + (m * SECONDS) + s) + ":R>" + "<t:" + (parseInt(Date.now()/1000) + (h * MINUTES * SECONDS) + (m * SECONDS) + s) + ":R>" + "<t:" + (parseInt(Date.now()/1000) + (m * SECONDS) + s) + ":R>" + "<t:" + (parseInt(Date.now()/1000) + s) + ":R>"
 	
 	// Same First and Last Index Error !!!
 	for (var i=0; i<quotes.length - emotes.length; i++) { // Add extra spacing
@@ -114,13 +117,25 @@ function conductSurvey(message) {
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
-		content: header + "\n *\t" + body + "\n * Ends In: --:--:--" //+ timestamp
+		content: header + "\n *\t" + body + "\n * Ends In: --:--:--" + timestamp
 	}).then((message) => { // Add the options to the survey
 		for (e of emotes) { // Loop through the options
 			if (e != "") { // The emoji is not null
 				message.react(e) // Add the emoji reaction
 			}
 		}
+		s = setTimeout(() => {
+			// Reset Seconds Timer To 60s
+		}, s * 1000)
+		m = setTimeout(() => {
+			// Reset Minutes Timer To 60m
+		}, (m * SECONDS + s) * 1000)
+		h = setTimeout(() => {
+			// Reset Hours Timer To 24h
+		}, (h * MINUTES * SECONDS + m * SECONDS + s) * 1000)
+		//d = setTimeout(() => {
+		//	// Reset Days Timer (Not Needed)
+		//}, (d * HOURS * MINUTES * SECONDS + h * MINUTES * SECONDS + m * SECONDS + s) * 1000)
 	})
 	.catch(() => {
 		// None ? 
