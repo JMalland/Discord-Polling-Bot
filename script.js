@@ -109,14 +109,16 @@ function conductSurvey(message) {
 	m = parseInt(times[2]) // Number of minutes
 	s = parseInt(times[3]) // Number of seconds
 
-	timestamp = "<t:" + (parseInt(Date.now()/1000) + (d * HOURS * MINUTES * SECONDS) + (h * MINUTES * SECONDS) + (m * SECONDS) + s) + ":R>" + "<t:" + (parseInt(Date.now()/1000) + (h * MINUTES * SECONDS) + (m * SECONDS) + s) + ":R>" + "<t:" + (parseInt(Date.now()/1000) + (m * SECONDS) + s) + ":R>" + "<t:" + (parseInt(Date.now()/1000) + s) + ":R>"
-
 	// Days, Hours, Minutes, & Seconds ~ Timestamp Countdown Timers
 	dStamp = d == 0 ? "" : "<t:" + (parseInt(Date.now()/1000) + (d * HOURS * MINUTES * SECONDS) + (h * MINUTES * SECONDS) + (m * SECONDS) + s) + ":R>"
 	hStamp = h == 0 ? "" : "<t:" + (parseInt(Date.now()/1000) + (h * MINUTES * SECONDS) + (m * SECONDS) + s) + ":R>"
 	mStamp = m == 0 ? "" : "<t:" + (parseInt(Date.now()/1000) + (m * SECONDS) + s) + ":R>"
 	sStamp = s == 0 ? "" : "<t:" + (parseInt(Date.now()/1000) + s) + ":R>"
 	
+	timestamp = dStamp + hStamp + mStamp + sStamp
+
+	console.log(timestamp)
+
 	// Same First and Last Index Error !!!
 	for (var i=0; i<quotes.length - emotes.length; i++) { // Add extra spacing
 		emotes.unshift("") // Add an empty string, just to line up the quotes and emojis
@@ -151,33 +153,50 @@ function conductSurvey(message) {
 			// Reset Seconds Timer To 60s
 			var interval = () => {
 				clearStamp = (val, stamp) => {
-					if (val <= 0) {
+					if (val <= 0 && stamp != "") {
 						message.edit(message.content.replace(stamp, "")).then((edit) => { // Clear the timestamp
 							message.content = edit.content // Update the message content to reflect the edit
-							console.log("Cleared A Timestamp.")
 						})
+						return(true)
 					}
+					return(false)
 				}
-				changeSeconds = () => {
-					console.log("Updated Seconds.")
-					temp = "<t:" + parseInt(Date.now()/1000 + DEFAULT_SECONDS) + ":R>" // Temporary timestamp
+				updateSeconds = (DEFAULT) => {
+					temp = "<t:" + parseInt(Date.now()/1000 + DEFAULT) + ":R>"
 					message.edit(message.content.replace(sStamp, temp)).then((edit) => { // Update the message to show T-60 seconds
 						message.content = edit.content // Update the message content to reflect the edit
 					})
-					sStamp = temp // Update sStamp to equal the current secondstamp
+					sStamp = temp // Update the secondstamp
+					return(DEFAULT) // Return the default value
+				}
+				updateMinutes = (DEFAULT) => {
+					temp = "<t:" + parseInt(Date.now()/1000 + DEFAULT * SECONDS) + ":R>"
+					message.edit(message.content.replace(mStamp, temp)).then((edit) => { // Update the message to show T-60 seconds
+						message.content = edit.content // Update the message content to reflect the edit
+					})
+					mStamp = temp // Update the minutestamp
+					return(DEFAULT) // Return the default value
+				}
+				updateHours = (DEFAULT) => {
+					temp = "<t:" + parseInt(Date.now()/1000 + DEFAULT * MINUTES * SECONDS) + ":R>"
+					message.edit(message.content.replace(hStamp, temp)).then((edit) => { // Update the message to show T-60 seconds
+						message.content = edit.content // Update the message content to reflect the edit
+					})
+					hStamp = temp // Update the hourstamp
+					return(DEFAULT) // Return the default value
+				}
+				changeSeconds = () => {
+					console.log("Updated Seconds.")
 					m -= 1 // Subtract one minute
+					s = updateSeconds(DEFAULT_SECONDS) // Set 's' to default value
 				}
 				changeMinutes = () => {
 					if (s != 0) { // Seconds counter is not 0
 						return // Quit the method
 					}
 					console.log("Updated Minutes.")
-					temp = "<t:" + parseInt(Date.now()/1000 + DEFAULT_MINUTES * SECONDS) + ":R>" // Temporary timestamp
-					message.edit(message.content.replace(mStamp, temp)).then((edit) => { // Update the message to show T-60 minutes
-						message.content = edit.content // Update the message content to reflect the edit
-					})
-					mStamp = temp // Update mStamp to equal the current minutestamp
 					h -= 1 // Subtract one hour
+					m = updateMinutes(DEFAULT_MINUTES) // Set 'm' to default value
 					changeSeconds() // Update the seconds timestamp
 				}
 				changeHours = () => {
@@ -185,12 +204,8 @@ function conductSurvey(message) {
 						return // Quit the method
 					}
 					console.log("Updated Hours.")
-					temp = "<t:" + parseInt(Date.now()/1000 + DEFAULT_HOURS * MINUTES * SECONDS) + ":R>" // Temporary timestamp
-					message.edit(message.content.replace(hStamp, temp)).then((edit) => { // Update the message to show T-24 hours
-						message.content = edit.content // Update the message content to reflect the edit
-					})
-					hStamp = temp // Update hStamp to equal the current hourstamp
 					d -= 1 // Subtract one day
+					h = updateHours(DEFAULT_HOURS) // Set 'h' to default value
 					changeMinutes() // Update the minutes timestamp
 				}
 
@@ -203,14 +218,29 @@ function conductSurvey(message) {
 				else if (m - 1 == 0 && h - 1 == 0 && d - 1 >= 0) { // 0 Hours : 0 Minutes : 0 Seconds, but remaining days
 					changeHours() // Adjust the current hours display
 				}
-				else { // 0 Days : 0 Hours : 0 Minutes : 0 Seconds
+				else if (s == 0 && m == 0 && h == 0 && d == 0) { // 0 Days : 0 Hours : 0 Minutes : 0 Seconds
+					message.edit(message.content.substring(0, message.content.indexOf("\n * Ends In: ")) + "\n * Ends In: ** Survey Has Concluded").then((edit) => {
+						message.content = edit.content // Update message content
+					})
 					clearInterval(this) // Clear the interval, so it stops updating.
 				}
 
-				clearStamp(s, sStamp) // Clear the secondstamp, if necessary
-				clearStamp(m, mStamp) // Clear the minutestamp, if necessary
-				clearStamp(h, hStamp) // Clear the hourstamp, if necessary
-				clearStamp(d, dStamp) // Clear the daystamp, if necessary
+				if (clearStamp(s, sStamp)) { // Clear the secondstamp, if necessary
+					console.log("Cleared Secondstamp.")
+					sStamp = ""
+				}
+				if (clearStamp(m, mStamp)) {
+					console.log("Cleared Minutestamp.")
+					mStamp = ""
+					updateSeconds(s)
+				}
+				if (clearStamp(h, hStamp)) {
+					console.log("Cleared Hourstamp.")
+					hStamp = ""
+					updateMinutes(m)
+					updateSeconds(s)
+				}
+				dStamp = clearStamp(d, dStamp) ? "" : dStamp // Clear the daystamp, if necessary
 			}
 			interval() // Run the interval method to update the content.
 			setInterval(interval, SECONDS * 1000) // Set the interval timer to run per minute
