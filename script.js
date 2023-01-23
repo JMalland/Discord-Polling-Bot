@@ -1,6 +1,6 @@
-
 // Require the necessary discord.js classes
-const { Client, GatewayIntentBits, PermissionsBitField, quote, time } = require('discord.js');
+const { Survey, User } = require('./survey.js') // Import the User and Survey class
+const { Client, GatewayIntentBits, PermissionsBitField, quote, time, ReactionUserManager } = require('discord.js');
 const { token } = require('./config.json');
 
 // Create a new client instance
@@ -10,6 +10,7 @@ const client = new Client({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.DirectMessages,
 		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildMessageReactions,
 	]
 });
 
@@ -18,9 +19,6 @@ client.once('ready', () => {
 	console.log('Ready!');
 	return;
 });
-
-runningSurveys = [] // List of active survey messages
-concludedSurveys = [] // List of concluded survey messages
 
 function grabQuotes(content) {
 	results = []
@@ -67,7 +65,7 @@ function grabEmotes(content, quotes) {
 				break // Quit the loop
 			}
 			else if (emoji > start && emoji < end) { // The emoji is found within the quote
-				results.splice(results.indexOf(e), 1); // Remove the emoji from the list
+				results.splice(results.indexOf(e), 1) // Remove the emoji from the list
 				content = content.substring(emoji + 1) // Skip past the current emoji
 				break // Quit the loop
 			}
@@ -91,41 +89,25 @@ function conductSurvey(message) {
 	minutes = 60 * parseInt(message.content.substring(message.content.indexOf(quotes[quotes.length - 1]) + quotes[quotes.length - 1].length + 1).trim()) // Cut out the time requirement, if it exists
 	timestamp = "<t:" + parseInt(Date.now()/1000 + minutes) + ":" + FORMAT + ">" // Creates the timestamp to signal the end of the survey duration
 
-	// Same First and Last Index Error !!!
-	for (var i=0; i<quotes.length - emotes.length; i++) { // Add extra spacing
-		emotes.unshift("") // Add an empty string, just to line up the quotes and emojis
-	}
-
 	console.log(quotes)
 	console.log(emotes)
 
-	header = "" // Stores the heading of the formatted reply
-	body = "" // Stores the body of formatted emojis and options
+	query = "" // Stores the heading of the formatted reply
 
-	for (var i=0; i<quotes.length; i++) {
-		if (emotes[i] == "") { // The stored emoji is just null
-			header += quotes[i] // Add the next quote to the reply
-		}
-		else {
-			body += "\n *\t" + emotes[i] + " " + quotes[i] // Add the emoji option to the reply
-		}
+	for (var i=0; i<quotes.length - emotes.length; i++) {
+		query += quotes[0] // Add the next quote to the reply
+		quotes.splice(i, 1) // Remove the quote from the list, as it part of the question
 	}
+
+	var survey = new Survey(query, quotes, emotes) // Create the new survey
+	survey.duration = minutes // Set the time duration of the survey
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
-		content: header + "\n *\t" + body + "\n * \n * Ends At: " + timestamp
+		content: survey.getMessage()
 	}).then((message) => { // Add the options to the survey
-		for (e of emotes) { // Loop through the options
-			if (e != "") { // The emoji is not null
-				message.react(e) // Add the emoji reaction
-			}
-		}
-		setTimeout(() => {
-			message.edit(message.content.substring(0, message.content.indexOf("\n * Ends At: ")) + "\n * Ends At: ** Survey Has Concluded").then(() => {
-				runningSurveys.remove(runningSurveys.indexOf(message)) // Remove the message from the running surveys
-				concludedSurveys.push(message) // Add the message to the concluded surveys
-			})
-		}, minutes * 60 * 1000)
+		survey.message = message // Attach the message to the survey
+		survey.addOptions() // Add the reactions to the survey message
 	})
 	.catch(() => {
 		// None ? 
@@ -136,19 +118,35 @@ client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
 		return;
 	}
-	console.log(message.content)
 	if (message.content.charAt(0) == '!') {
 		conductSurvey(message)
-		runningSurveys.push(message)
 	}
 })
 
-client.on("messageReactionAdd", async (reaction) => {
-	console.log("Reaction Added")
-	if (reaction.message in concludedSurveys) { // The survey has been concluded
-		reaction.remove() // Remove the reaction
-		console.log("Reaction Removed")
+client.on("messageReactionAdd", async (reaction, user) => {
+	if (user.bot) { // The user is a bot
+		return
 	}
+	message = reaction.message // Store the message
+	survey = Survey.findSurvey(message) // Attempt to find the survey, if it exists
+	user = User.getUser(user, reaction.emoji.toString(), survey) // Create or get the user
+	if (user.addSurveyReaction(reaction.emoji.toString(), survey)) { // The user was able to use the reaction
+		console.log("Reaction Added")
+		return // Quit the method
+	}
+	console.log("Reaction Ignored")
+	reaction.users.remove(user.user) // Remove the reaction
+})
+
+client.on("messageReactionRemove", async (reaction, user) => {
+	if (user.bot) { // The user is a bot
+		return
+	}
+	message = reaction.message // Store the message
+	survey = Survey.findSurvey(message) // Attempt to find the survey, if it exists
+	user = User.getUser(user, reaction.emoji.toString(), survey) // Create or get the user
+	user.removeSurveyReaction(reaction.emoji.toString(), survey) // Remove the user's survey reaction
+	console.log("Reaction Removed")
 })
 
 // Login to Discord with your client's token
