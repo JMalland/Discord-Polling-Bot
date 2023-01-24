@@ -74,6 +74,11 @@ function grabEmotes(content, quotes) {
 	return(results)
 }
 
+// Message should be formatted as:
+// 	   !survey (int) "(string)" [EMOJI] ... (int)
+//	   !survey (int) "(string)" [EMOJI] ...
+//     !survey "(string)" [EMOJI] ...
+//     !survey "(string)" [EMOJI] ... (int)
 function conductSurvey(message) {
 	FORMAT = "F"
 	console.log("Conducting Survey")
