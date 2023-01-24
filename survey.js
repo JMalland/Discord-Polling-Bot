@@ -70,18 +70,23 @@ class Survey {
     results = [] // List of all voting results calculated in the survey
     maxSelection = 1 // The maximum amount of options a single user can select
     duration = 0 // The amount of time in minutes, before the survey ends.
+    timestamp = "" // The timestamp of the survey's duration
     format = "F" // The format of the survey timestamp
 
     /*  @Params
         query - The question being asked in the survey
         options - The choices represented by each emoji
         emojis - The emojis used to select choice(s)
+        selection - The max number of votes a user may cast
+        duration - The length of time (in minutes) the survey should run for
     */
-    constructor(query, options, emojis) {
+    constructor(query, options, emojis, selection, duration) {
         this.question = query // Set the asked question
         this.choices = options // Set the choices
         this.reactions = emojis // Set the reactions
         this.results = [] // Store the voting results
+        this.maxSelection = selection // Set the max selection
+        this.duration = duration // Set the duration
         for (var i=0; i<options.length; i++) { // Run the loop for as many options
             this.results.push(0) // Set the default poll value
         }
@@ -98,38 +103,39 @@ class Survey {
     }
 
     getMessage() { // Returns the formatted survey message
-        var message = "* **__Survey:__**  " + this.question + "\n" + this.spaces + "*" // Create the message header
+        var message = "*  **__Survey:__**  " + this.question + "\n" + this.spaces + "*" // Create the message header
         for (var i=0; i<this.choices.length; i++) { // Loop through the emojis/choices
             message += "\n" + this.spaces + "*\t" + this.reactions[i] + " " + this.choices[i] // Format the options
         }
         if (this.duration > 0) { // The runtime of the survey is valid
-            message += "\n" + this.spaces + "*\n" + this.spaces + "*\tEnds At: " + "<t:" + parseInt(Date.now()/1000 + this.duration * 60) + ":" + this.format + ">" // Add the survey's timer
+            this.timestamp = "<t:" + parseInt(Date.now()/1000 + this.duration * 60) + ":" + this.format + ">" // Set the duration's timestamp
+            message += "\n" + this.spaces + "*\n*  **__Ends At:__** " + this.timestamp // Add the survey's timer
         }
         return(message) // Return the formatted message
     }
 
     #addReaction(i) { // Add the indexed reaction, if it exists
         if (i < this.reactions.length) { // The reaction index is valid
-            this.message.react(this.reactions[i]).then((msg) => { // Wait until the reaction is added
+            this.message.react(this.reactions[i]).then(() => { // Wait until the reaction is added
                 console.log("Added Reaction #" + (i+1))
-                //this.message = msg // Make the survey's message up to date
                 this.#addReaction(i + 1) // Add the next reaction, if it exists
             })
         }
         else { // Finally ran out of options to add
             setTimeout(() => {
-                var results = "\n* **__Survey Results:__**  " + /*[" + this.question + "](" + this.message.url + ")*/"\n" + this.spaces + "*\n" + this.spaces + "*\tThe poll results for \"" + this.question + "\" are in!\n" + this.spaces + "*\tMost users voted for "
-                var max = 0 // Store the winning vote
-                for (var i=0; i<this.results.length; i++) { // Loop through all results
-                    max = this.results[i] > this.results[max] ? i : max // Update the max value, if necessary
+                var results = "\n*  **__Survey Results:__**\n" + this.spaces + "*"
+                var sum = 0 // Store the total amount of voters
+                for (var n of this.results) { // Loop through results to get the sum
+                    sum += n // Add to the sum
                 }
-                results += this.reactions[max] +", being \"" + this.choices[max] + "\". Congrats!"
-                this.message.edit(this.message.content.substring(0, this.message.content.indexOf("\n" + this.spaces + "*\tEnds At: ")) + results).then((msg) => {
-                    this.message = msg // Update the survey message
+                for (var i=0; i<this.results.length; i++) { // Loop through results to determine voting stats
+                    results += "\n" + this.spaces + "*\t" + (100 * this.results[i] / sum).toFixed(2) + "% Voted for " + this.reactions[i]
+                }
+                results += "\n" + this.spaces + "*\n*  **__Ended At:__** " + this.timestamp // Conclude the bullet point formating
+                this.message.edit(this.message.content.substring(0, this.message.content.indexOf("\n*  **__Ends At:__** ")) + results).then(() => {
                     Survey.activeSurvevys.splice(Survey.activeSurvevys.indexOf(this), 1) // Remove the survey from the list of active surveys
                     Survey.pastSurveys.push(this) // Add the survey to the list of past surveys
                     console.log("Concluded Survey")
-                    // **__Survey Results: __** Does this work?
                 })
             },  20 * 1000) // this.timeout * 60 * 1000)
         }

@@ -61,7 +61,7 @@ function grabEmotes(content, quotes) {
 			emoji = content.indexOf(e) // Store the index of the emoji
 			start = content.indexOf(q)// The start index of the quote
 			end = start + q.length // The end index of the quote
-			if (emoji < start) { // The emoji is found prior to the quote
+			if (emoji < start || start == -1) { // The emoji is found prior to the quote
 				break // Quit the loop
 			}
 			else if (emoji > start && emoji < end) { // The emoji is found within the quote
@@ -77,30 +77,25 @@ function grabEmotes(content, quotes) {
 function conductSurvey(message) {
 	FORMAT = "F"
 	console.log("Conducting Survey")
-	if (message.content.indexOf("!survey \"") != 0) { // Structure of the command is invalid
-		// Invalid Formatting Error !!!
-		console.log("Formatting Error!")
-		return
-	}
 
 	quotes = grabQuotes(message.content) // Store all the quotes in the survey
 	emotes = grabEmotes(message.content, quotes) // Store all the emojis used in the survey
 	
-	minutes = 60 * parseInt(message.content.substring(message.content.indexOf(quotes[quotes.length - 1]) + quotes[quotes.length - 1].length + 1).trim()) // Cut out the time requirement, if it exists
-	timestamp = "<t:" + parseInt(Date.now()/1000 + minutes) + ":" + FORMAT + ">" // Creates the timestamp to signal the end of the survey duration
-
+	minutes = parseInt(message.content.substring(message.content.indexOf(" "), message.content.indexOf("\"")).trim()) // Cut out the time requirement, if it exists
+	selection = parseInt(message.content.substring(message.content.lastIndexOf("\"")).trim()) // Cut out the maximum selection, if it's specified
+	minutes = isNaN(minutes) ? 30 : minutes // Default timer of the survey - 30 minutes
+	selection = isNaN(selection) ? 1 : selection // Default number of options a user may select
+	
 	console.log(quotes)
 	console.log(emotes)
 
 	query = "" // Stores the heading of the formatted reply
-
-	for (var i=0; i<quotes.length - emotes.length; i++) {
+	for (var i=0; i<quotes.length - emotes.length; i++) { // Loop through each quote that doesn't pair with an emoji
 		query += quotes[0] // Add the next quote to the reply
 		quotes.splice(i, 1) // Remove the quote from the list, as it part of the question
 	}
 
-	var survey = new Survey(query, quotes, emotes) // Create the new survey
-	survey.duration = minutes // Set the time duration of the survey
+	var survey = new Survey(query, quotes, emotes, selection, minutes) // Create the new survey
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
@@ -116,7 +111,7 @@ function conductSurvey(message) {
 
 client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
-		return;
+		return
 	}
 	if (message.content.charAt(0) == '!') {
 		conductSurvey(message)
