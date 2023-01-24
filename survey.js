@@ -137,7 +137,7 @@ class Survey {
                     Survey.pastSurveys.push(this) // Add the survey to the list of past surveys
                     console.log("Concluded Survey")
                 })
-            },  20 * 1000) // this.timeout * 60 * 1000)
+            },  this.duration * 60 * 1000)
         }
     }
 
