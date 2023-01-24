@@ -62,6 +62,7 @@ class Survey {
     static activeSurvevys = [] // Store all current Survey objects
     static pastSurveys = [] // Store all previous Survey objects
 
+    spaces = "    " // Number of spaces between each bullet point
     message = null // The Discord message this survey was sent in
     question = "" // The main question asked regarding the choices provided
     choices = [] // List of all the choices used in the survey 
@@ -97,12 +98,12 @@ class Survey {
     }
 
     getMessage() { // Returns the formatted survey message
-        var message = "**__New Survey:__**  " + this.question + "\n*" // Create the message header
+        var message = "* **__Survey:__**  " + this.question + "\n" + this.spaces + "*" // Create the message header
         for (var i=0; i<this.choices.length; i++) { // Loop through the emojis/choices
-            message += "\n*\t" + this.reactions[i] + " " + this.choices[i] // Format the options
+            message += "\n" + this.spaces + "*\t" + this.reactions[i] + " " + this.choices[i] // Format the options
         }
         if (this.duration > 0) { // The runtime of the survey is valid
-            message += "\n*\n*\tEnds At: " + "<t:" + parseInt(Date.now()/1000 + this.duration * 60) + ":" + this.format + ">" // Add the survey's timer
+            message += "\n" + this.spaces + "*\n" + this.spaces + "*\tEnds At: " + "<t:" + parseInt(Date.now()/1000 + this.duration * 60) + ":" + this.format + ">" // Add the survey's timer
         }
         return(message) // Return the formatted message
     }
@@ -117,20 +118,18 @@ class Survey {
         }
         else { // Finally ran out of options to add
             setTimeout(() => {
-                this.message.edit(this.message.content.substring(0, this.message.content.indexOf("\n*\tEnds At: ")) + "\n*\tEnds At: ** Survey Has Concluded").then((msg) => {
+                var results = "\n* **__Survey Results:__**  " + /*[" + this.question + "](" + this.message.url + ")*/"\n" + this.spaces + "*\n" + this.spaces + "*\tThe poll results for \"" + this.question + "\" are in!\n" + this.spaces + "*\tMost users voted for "
+                var max = 0 // Store the winning vote
+                for (var i=0; i<this.results.length; i++) { // Loop through all results
+                    max = this.results[i] > this.results[max] ? i : max // Update the max value, if necessary
+                }
+                results += this.reactions[max] +", being \"" + this.choices[max] + "\". Congrats!"
+                this.message.edit(this.message.content.substring(0, this.message.content.indexOf("\n" + this.spaces + "*\tEnds At: ")) + results).then((msg) => {
                     this.message = msg // Update the survey message
                     Survey.activeSurvevys.splice(Survey.activeSurvevys.indexOf(this), 1) // Remove the survey from the list of active surveys
                     Survey.pastSurveys.push(this) // Add the survey to the list of past surveys
                     console.log("Concluded Survey")
                     // **__Survey Results: __** Does this work?
-                    var results = "**__Survey Results:__**  " + this.question + /*[" + this.question + "](" + this.message.url + ")*/"\n*\tThe poll results for \"" + this.question + "\" are in!\n*\tMost users voted for "
-                    var max = 0 // Store the winning vote
-                    for (var i=0; i<this.results.length; i++) { // Loop through all results
-                        max = this.results[i] > this.results[max] ? i : max // Update the max value, if necessary
-                    }
-                    results += this.reactions[max] +", being \"" + this.choices[max] + "\". Congrats!"
-                    this.message.channel.send(results)
-                    return([this.reactions, this.options, this.results]) // Returns the list of survey results
                 })
             },  20 * 1000) // this.timeout * 60 * 1000)
         }
