@@ -1,6 +1,6 @@
 // Require the necessary discord.js classes
 const { Survey, User } = require('./survey.js') // Import the User and Survey class
-const { Client, GatewayIntentBits, PermissionsBitField, quote, time, ReactionUserManager } = require('discord.js');
+const { Client, GatewayIntentBits, PermissionsBitField, quote, time, ReactionUserManager, CommandInteractionOptionResolver } = require('discord.js');
 const { token } = require('./config.json');
 
 // Create a new client instance
@@ -87,12 +87,14 @@ function conductSurvey(message) {
 	emotes = grabEmotes(message.content, quotes) // Store all the emojis used in the survey
 	
 	minutes = parseInt(message.content.substring(message.content.indexOf(" "), message.content.indexOf("\"")).trim()) // Cut out the time requirement, if it exists
-	selection = parseInt(message.content.substring(message.content.lastIndexOf("\"")).trim()) // Cut out the maximum selection, if it's specified
+	selection = parseInt(message.content.substring(message.content.lastIndexOf("\"") + 1).trim()) // Cut out the maximum selection, if it's specified
 	minutes = isNaN(minutes) ? 30 : minutes // Default timer of the survey - 30 minutes
 	selection = isNaN(selection) ? 1 : selection // Default number of options a user may select
 	
 	console.log(quotes)
 	console.log(emotes)
+
+	console.log("Selection: " + selection)
 
 	query = "" // Stores the heading of the formatted reply
 	for (var i=0; i<quotes.length - emotes.length; i++) { // Loop through each quote that doesn't pair with an emoji

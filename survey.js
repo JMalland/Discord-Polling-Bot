@@ -51,6 +51,7 @@ class User {
             }
         }
         this.reactions[this.surveys.indexOf(survey)] = reactions // Update the survey reactions to be one less
+        console.log("New Reactions: " + reactions)
     }
 
     getSurveyReactions(survey) { // Returns the reactions a user posted on a survey
