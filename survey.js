@@ -70,11 +70,13 @@ class Survey {
     static pastSurveys = [] // Store all previous Survey objects
     
     spaces = "    " // Number of spaces between each bullet point
+    footer = "" // The message displayed with the results
     message = null // The Discord message this survey was sent in
     question = "" // The main question asked regarding the choices provided
     choices = [] // List of all the choices used in the survey 
     reactions = [] // List of all the reactions used in the survey
     results = [] // List of all voting results calculated in the survey
+    extendResults = true // Whether or not results are displayed in addition to the initial message, or they replace it
     maxSelection = 1 // The maximum amount of options a single user can select
     duration = 0 // The amount of time in minutes, before the survey ends.
     timestamp = "" // The timestamp of the survey's duration
@@ -87,13 +89,14 @@ class Survey {
         selection - The max number of votes a user may cast
         duration - The length of time (in minutes) the survey should run for
     */
-    constructor(query, options, emojis, selection, duration) {
-        this.question = query // Set the asked question
-        this.choices = options // Set the choices
+    constructor(header, options, emojis, footer, selection, duration) {
+        this.question = header + options[0] // Set the asked question
+        this.choices = options.slice(1) // Set the choices
         this.reactions = emojis // Set the reactions
         this.results = [] // Store the voting results
         this.maxSelection = selection // Set the max selection
         this.duration = duration // Set the duration
+        this.footer = footer // Set the footer
         for (var i=0; i<options.length; i++) { // Run the loop for as many options
             this.results.push(0) // Set the default poll value
         }
@@ -110,7 +113,7 @@ class Survey {
     }
 
     getMessage() { // Returns the formatted survey message
-        var message = "*  **__Survey:__**  " + this.question + "\n" + this.spaces + "*" // Create the message header
+        var message = this.question + "\n" + this.spaces + "*" // Create the message header
         for (var i=0; i<this.choices.length; i++) { // Loop through the emojis/choices
             message += "\n" + this.spaces + "*\t" + this.reactions[i] + " " + this.choices[i] // Format the options
         }
@@ -122,7 +125,7 @@ class Survey {
     }
 
     #getResults() { // Returns the formatted survey results
-        var results = "\n*  **__Survey Results:__**\n" + this.spaces + "*"
+        var results = "\n" + this.footer + "\n" + this.spaces + "*"
         var sum = 0 // Store the total amount of voters
         for (var n of this.results) { // Loop through results to get the sum
             sum += n // Add to the sum
@@ -142,7 +145,7 @@ class Survey {
         }
         else { // Finally ran out of options to add
             setTimeout(() => {
-                this.message.edit(this.message.content.substring(0, this.message.content.indexOf("\n*  **__Ends At:__** ")) + this.#getResults()).then(() => {
+                this.message.edit(this.message.content.substring(0, this.message.content.indexOf(this.extendResults ? "\n*  **__Ends At:__** " : "")) + this.#getResults()).then(() => {
                     Survey.activeSurvevys.splice(Survey.activeSurvevys.indexOf(this), 1) // Remove the survey from the list of active surveys
                     Survey.pastSurveys.push(this) // Add the survey to the list of past surveys
                     console.log("Concluded Survey")

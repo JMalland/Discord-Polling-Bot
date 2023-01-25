@@ -71,7 +71,7 @@ function conductSurvey(message) {
 
 	console.log("Selection: " + selection)
 
-	var survey = new Survey(quotes[0], quotes.slice(1), emotes, selection, minutes) // Create the new survey
+	var survey = new Survey("*  **__Survey:__**  ", quotes, emotes, "*  **__Survey Results:__**  ", selection, minutes) // Create the new survey
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
