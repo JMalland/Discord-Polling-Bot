@@ -2,7 +2,7 @@
 //     Make multiple surveys, with correct answers
 //          - Point value associations per option/answer
 //          - Scoring/Ranking system?
-//          - Roles/Titles/Stuff                                                                                              
+//          - Roles/Titles/Stuff                                                                             
 
 class User {
     static users = [] // Store all User objects
