@@ -1,3 +1,9 @@
+// New Quiz Feature?
+//     Make multiple surveys, with correct answers
+//          - Point value associations per option/answer
+//          - Scoring/Ranking system?
+//          - Roles/Titles/Stuff
+
 class User {
     static users = [] // Store all User objects
     user = null // Store the Discord user's data
