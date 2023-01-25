@@ -1,5 +1,6 @@
 // Require the necessary discord.js classes
 const { Survey, User } = require('./survey.js') // Import the User and Survey class
+const { Quiz } = require('./quiz.js') // Import the Quiz class
 const { Client, GatewayIntentBits, PermissionsBitField, quote, time, ReactionUserManager, CommandInteractionOptionResolver } = require('discord.js');
 const { token } = require('./config.json');
 
@@ -49,12 +50,7 @@ function grabEmotes(content, quotes) {
 	return(results) // Return the emojis found outside of " quotes in the command
 }
 
-// Message should be formatted as:
-// 	   !survey (int) "(string)" [EMOJI] ... (int)
-//	   !survey (int) "(string)" [EMOJI] ...
-//     !survey "(string)" [EMOJI] ...
-//     !survey "(string)" [EMOJI] ... (int)
-function conductSurvey(message) {
+function createSurvey(message) {
 	FORMAT = "F"
 	console.log("Conducting Survey")
 
@@ -71,26 +67,48 @@ function conductSurvey(message) {
 
 	console.log("Selection: " + selection)
 
-	var survey = new Survey("*  **__Survey:__**  ", quotes, emotes, "*  **__Survey Results:__**  ", selection, minutes) // Create the new survey
-
-	message.channel.send({ // Send the formatted reply
-		files: [...message.attachments.values()],
-		content: survey.getMessage()
-	}).then((message) => { // Add the options to the survey
-		survey.message = message // Attach the message to the survey
-		survey.addOptions() // Add the reactions to the survey message
-	})
-	.catch(() => {
-		// None ? 
-	})
+	return(new Survey("*  **__Survey:__**  ", quotes, emotes, "*  **__Survey Results:__**  ", selection, minutes)) // Create the new survey
 }
 
 client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
 		return
 	}
-	if (message.content.charAt(0) == '!') {
-		conductSurvey(message)
+	var user = User.getUser(message.author) // Create or get the user
+	var command = message.content.split(" ")[0] // Store the command executed
+	/* Survey Command:
+	*  	   !survey (int) "(string)" [EMOJI] ... (int)
+	* 	   !survey (int) "(string)" [EMOJI] ...
+	*      !survey "(string)" [EMOJI] ...
+	*      !survey "(string)" [EMOJI] ... (int)
+	*/
+	/*  Quiz Command:
+	*	   !CreateQuiz "(string)"	// Just the name of the quiz
+	*	   !AddToQuiz ... 			// Same rules as the '!survey' command. The correct answer must be the first one listed 
+	*/
+	if (command == "!survey") {
+		var survey = createSurvey(message) // Store the survey
+		message.channel.send({ // Send the formatted reply
+			files: [...message.attachments.values()],
+			content: survey.getMessage()
+		}).then((message) => { // Add the options to the survey
+			survey.message = message // Attach the message to the survey
+			survey.addOptions() // Add the reactions to the survey message
+		})
+		.catch(() => {
+			// None ? 
+		})
+	}
+	else if (command == "!CreateQuiz") { // Starts the quiz building process for the user
+		user.makingQuiz = true // Sets the quiz status of the user
+		user.surveyQuiz = new Quiz()
+	}
+	else if (command == "!AddToQuiz") { // Adds the survey question to the quiz
+		var survey = createSurvey(message) // Store the quiz question as a survey
+		user.surveyQuiz.addQuestion(survey) // Add the survey to the quiz
+	}
+	else if (command == "!StartQuiz") { // Runs the quiz as a compilation of surveys
+		
 	}
 })
 
@@ -100,7 +118,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
 	}
 	message = reaction.message // Store the message
 	survey = Survey.findSurvey(message) // Attempt to find the survey, if it exists
-	user = User.getUser(user, reaction.emoji.toString(), survey) // Create or get the user
+	user = User.getUser(user) // Create or get the user
 	if (user.addSurveyReaction(reaction.emoji.toString(), survey)) { // The user was able to use the reaction
 		console.log("Reaction Added")
 		return // Quit the method
@@ -115,7 +133,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
 	}
 	message = reaction.message // Store the message
 	survey = Survey.findSurvey(message) // Attempt to find the survey, if it exists
-	user = User.getUser(user, reaction.emoji.toString(), survey) // Create or get the user
+	user = User.getUser(user) // Create or get the user
 	user.removeSurveyReaction(reaction.emoji.toString(), survey) // Remove the user's survey reaction
 	console.log("Reaction Removed")
 })

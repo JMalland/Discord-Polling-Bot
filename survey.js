@@ -9,13 +9,15 @@ class User {
     user = null // Store the Discord user's data
     surveys = [] // Stores the a list of surveys, and reactions each user added
     reactions = [] // A 2d array of reactions, per each survey
+    makingQuiz = false // Determines if a user is creating a quiz
+    surveyQuiz = null // Stores the Quiz a user is creating
 
     /*  @Params
         user - The Discord user who posted the reaction
         emoji - The specific reaction the user used on a survey
         survey - The survey the user is reactiong to
     */
-    constructor(user, emoji, survey) {
+    constructor(user) {
         this.user = user // Set the user
         User.users.push(this) // Add the User object to the list of all of them
     }
@@ -26,7 +28,7 @@ class User {
                 return(u) // Return the existing user
             }
         }
-        return(new User(user, emoji, survey))
+        return(new User(user)) // Return the newly created user
     }
 
     addSurveyReaction(emoji, survey) { // Returns whether or not a reaction was added
