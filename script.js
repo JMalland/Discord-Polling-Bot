@@ -71,13 +71,7 @@ function conductSurvey(message) {
 
 	console.log("Selection: " + selection)
 
-	query = "" // Stores the heading of the formatted reply
-	for (var i=0; i<quotes.length - emotes.length; i++) { // Loop through each quote that doesn't pair with an emoji
-		query += quotes[0] // Add the next quote to the reply
-		quotes.splice(i, 1) // Remove the quote from the list, as it part of the question
-	}
-
-	var survey = new Survey(query, quotes, emotes, selection, minutes) // Create the new survey
+	var survey = new Survey(quotes[0], quotes.slice(1), emotes, selection, minutes) // Create the new survey
 
 	message.channel.send({ // Send the formatted reply
 		files: [...message.attachments.values()],
