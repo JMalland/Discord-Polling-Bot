@@ -130,7 +130,7 @@ class Survey {
                     sum += n // Add to the sum
                 }
                 for (var i=0; i<this.results.length; i++) { // Loop through results to determine voting stats
-                    results += "\n" + this.spaces + "*\t" + (100 * this.results[i] / sum).toFixed(2) + "% Voted for " + this.reactions[i]
+                    results += "\n" + this.spaces + "*\t" +  this.reactions[i] + " " + (100 * this.results[i] / sum).toFixed(2) + "% Voted For "
                 }
                 results += "\n" + this.spaces + "*\n*  **__Ended At:__** " + this.timestamp // Conclude the bullet point formating
                 this.message.edit(this.message.content.substring(0, this.message.content.indexOf("\n*  **__Ends At:__** ")) + results).then(() => {

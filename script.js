@@ -22,56 +22,25 @@ client.once('ready', () => {
 
 function grabQuotes(content) {
 	results = []
-	string = ""
-
-	if (!content.includes(" \"")) { // No quotes found in survey request
-		console.log("Quote Content Error!")
-		return(results)
-	}
-	content = content.substring(content.indexOf(" \"")).trim() // Skip to the quote
-	
-	for (var i=0; i<content.length; i++) {
-		if (i != 0 && content[i] == '"' && content[i-1] == '/') { // Character is an escaped quote
-			string += '"' // Add the quote to the string
-		}
-		else if (i != 0 && content[i] == '"' && content[i-1] != '/') { // End of quote
-			results.push(string) // Update the string to the array
-			string = "" // Clear the string
-			content = content.substring(i) // Skip past everything before the quote
-			if (content.includes(" \"")) { // Content contains more quotes
-				content = content.substring(content.indexOf(" \"")).trim() // Skip to the next quote
-				i = 0 // Reset 'i' to start over for the new quote
-			}
-		}
-		else if (i != 0 || content[i] != '"') { // Character is anything except a quote, if the index is 0
-			string += content.charAt(i) // Add the normal character to the string
-		}
+	while (content.includes("\"")) {
+		content = content.substring(content.indexOf("\"") + 1) // Trim the content to just inside the first quotation mark
+		results.push(content.substring(0, content.indexOf("\""))) // Add the Strings found within the quotes to the results
+		content = content.substring(content.indexOf("\"") + 1) // Trim the content to the end of the second quotation mark
 	}
 	return(results)
 }
 
 function grabEmotes(content, quotes) {
 	// Will need to check individually to see if the emoji index is chronologically found within a quote.
-	results = content.match(/<a?:.+?:\d{18}>|\p{Extended_Pictographic}/gu) // Pre ES6 way of parsing emoji's from messages
-	if (results == null) { // No emojis found
-		return([]) // Return an empty list
+	var parse = ""
+	content = content.substring(content.indexOf("\"") + 1)
+	while (content.includes("\"")) {
+		content = content.substring(content.indexOf("\"") + 1) // Trim the content to just inside the first quotation mark
+		parse += content.substring(0, content.indexOf("\"")) // Add the in-between quotes space to the String to be parsed for emojis
+		content = content.substring(content.indexOf("\"") + 1) // Trim the content to the end of the second quotation mark
 	}
-	for (e of results) { // Loop through each emoji found
-		for (q of quotes) { // Check each quote to see if the emoji is within it
-			emoji = content.indexOf(e) // Store the index of the emoji
-			start = content.indexOf(q)// The start index of the quote
-			end = start + q.length // The end index of the quote
-			if (emoji < start || start == -1) { // The emoji is found prior to the quote
-				break // Quit the loop
-			}
-			else if (emoji > start && emoji < end) { // The emoji is found within the quote
-				results.splice(results.indexOf(e), 1) // Remove the emoji from the list
-				content = content.substring(emoji + 1) // Skip past the current emoji
-				break // Quit the loop
-			}
-		}
-	}
-	return(results)
+	results = parse.match(/<a?:.+?:\d{18}>|\p{Extended_Pictographic}/gu) // Pre ES6 way of parsing emoji's from messages
+	return(results == null ? [] : results) // Return the emojis found outside of " quotes in the command
 }
 
 // Message should be formatted as:
