@@ -39,7 +39,7 @@ class Survey {
         this.header = header // Set the header
         this.footer = footer // Set the footer
         this.validAnswers = answers // Set the valid answer count 
-        for (var i=0; i<options.length; i++) { // Run the loop for as many options
+        for (var i=0; i<options.length - 1; i++) { // Run the loop for as many options
             this.results.push(0) // Set the default poll value
         }
         Survey.activeSurveys.push(this) // Add the survey to the active list
