@@ -4,71 +4,8 @@
 //          - Scoring/Ranking system?
 //          - Roles/Titles/Stuff                                                                             
 
-class User {
-    static users = [] // Store all User objects
-    user = null // Store the Discord user's data
-    surveys = [] // Stores the a list of surveys, and reactions each user added
-    reactions = [] // A 2d array of reactions, per each survey
-    makingQuiz = false // Determines if a user is creating a quiz
-    surveyQuiz = null // Stores the Quiz a user is creating
-
-    /*  @Params
-        user - The Discord user who posted the reaction
-        emoji - The specific reaction the user used on a survey
-        survey - The survey the user is reactiong to
-    */
-    constructor(user) {
-        this.user = user // Set the user
-        User.users.push(this) // Add the User object to the list of all of them
-    }
-
-    static getUser(user, emoji, survey) { // Returns the existing User object, if there is one
-        for (var u of User.users) { // Loop through each User object
-            if (u.user == user) { // The user has responded to a survey before, but not this one
-                return(u) // Return the existing user
-            }
-        }
-        return(new User(user)) // Return the newly created user
-    }
-
-    addSurveyReaction(emoji, survey) { // Returns whether or not a reaction was added
-        if (Survey.pastSurveys.includes(survey)) { // The survey is no longer running
-            return(false)
-        }
-        if (!this.surveys.includes(survey)) { // The survey doesn't exist for this user
-            this.surveys.push(survey) // Add the survey to the list
-            this.reactions.push([]) // Add a reaction list
-        }
-        var reactions = this.getSurveyReactions(survey) // Store the list of survey reactions
-        if (!reactions.includes(emoji) && survey.isOption(emoji) && reactions.length < survey.maxSelection) {
-            this.reactions[this.surveys.indexOf(survey)].push(emoji) // Add the reaction to the list
-            survey.updateCount(1, emoji) // Update the voting count for the survey
-            return(true)
-        }
-        return(false)
-    }
-
-    removeSurveyReaction(emoji, survey) { // Remove a reaction from a survey
-        var reactions = [] // Store a list of kept reactions for the survey
-        for (var r of this.getSurveyReactions(survey)) { // Loop through the user's survey reactions
-            if (r != emoji) { // The reaction isn't the removed reaction
-                reactions.push(r) // Add the reaction to the kept list
-            }
-            else {
-                survey.updateCount(-1, emoji) // Update the voting count for the survey
-            }
-        }
-        this.reactions[this.surveys.indexOf(survey)] = reactions // Update the survey reactions to be one less
-        console.log("New Reactions: " + reactions)
-    }
-
-    getSurveyReactions(survey) { // Returns the reactions a user posted on a survey
-        return(this.reactions[this.surveys.indexOf(survey)])
-    }
-}
-
 class Survey {
-    static activeSurvevys = [] // Store all current Survey objects
+    static activeSurveys = [] // Store all current Survey objects
     static pastSurveys = [] // Store all previous Survey objects
     
     spaces = "    " // Number of spaces between each bullet point
@@ -78,6 +15,7 @@ class Survey {
     choices = [] // List of all the choices used in the survey 
     reactions = [] // List of all the reactions used in the survey
     results = [] // List of all voting results calculated in the survey
+    validAnswers = 1 // Number of valid answers
     extendResults = true // Whether or not results are displayed in addition to the initial message, or they replace it
     maxSelection = 1 // The maximum amount of options a single user can select
     duration = 0 // The amount of time in minutes, before the survey ends.
@@ -91,22 +29,24 @@ class Survey {
         selection - The max number of votes a user may cast
         duration - The length of time (in minutes) the survey should run for
     */
-    constructor(header, options, emojis, footer, selection, duration) {
-        this.question = header + options[0] // Set the asked question
+    constructor(header, options, emojis, footer, selection, duration, answers) {
+        this.question = options[0] // Set the asked question
         this.choices = options.slice(1) // Set the choices
         this.reactions = emojis // Set the reactions
         this.results = [] // Store the voting results
         this.maxSelection = selection // Set the max selection
         this.duration = duration // Set the duration
+        this.header = header // Set the header
         this.footer = footer // Set the footer
+        this.validAnswers = answers // Set the valid answer count 
         for (var i=0; i<options.length; i++) { // Run the loop for as many options
             this.results.push(0) // Set the default poll value
         }
-        Survey.activeSurvevys.push(this) // Add the survey to the active list
+        Survey.activeSurveys.push(this) // Add the survey to the active list
     }
 
     static findSurvey(message) { // Return the survey with that message, if there is one
-        for (var s of [...Survey.activeSurvevys, ...Survey.pastSurveys]) { // Loop through all surveys
+        for (var s of [...Survey.activeSurveys, ...Survey.pastSurveys]) { // Loop through all surveys
             if (s.message == message) { // The message matches the current survey
                 return(s) // Return the survey
             }
@@ -114,15 +54,17 @@ class Survey {
         return(null) // There was no survey
     }
 
+    getTimestamp() {
+        return("<t:" + parseInt(Date.now()/1000 + this.duration * 60) + ":" + this.format + ">") // Return the timestamp
+    }
+
     getMessage() { // Returns the formatted survey message
-        var message = this.question + "\n" + this.spaces + "*" // Create the message header
+        var message = this.header + this.question + "\n" + this.spaces + "*" // Create the message header
         for (var i=0; i<this.choices.length; i++) { // Loop through the emojis/choices
-            message += "\n" + this.spaces + "*\t" + this.reactions[i] + " " + this.choices[i] // Format the options
+            message += "\n" + this.spaces + "*\t" + this.reactions[i] + "  " + this.choices[i] // Format the options
         }
-        if (this.duration > 0) { // The runtime of the survey is valid
-            this.timestamp = "<t:" + parseInt(Date.now()/1000 + this.duration * 60) + ":" + this.format + ">" // Set the duration's timestamp
-            message += "\n" + this.spaces + "*\n*  **__Ends At:__** " + this.timestamp // Add the survey's timer
-        }
+        this.timestamp = this.getTimestamp()
+        message += "\n" + this.spaces + "*\n*  **__Ends At:__** " + this.timestamp // Add the survey's timer
         return(message) // Return the formatted message
     }
 
@@ -148,7 +90,7 @@ class Survey {
         else { // Finally ran out of options to add
             setTimeout(() => {
                 this.message.edit(this.message.content.substring(0, this.message.content.indexOf(this.extendResults ? "\n*  **__Ends At:__** " : "")) + this.#getResults()).then(() => {
-                    Survey.activeSurvevys.splice(Survey.activeSurvevys.indexOf(this), 1) // Remove the survey from the list of active surveys
+                    Survey.activeSurveys.splice(Survey.activeSurveys.indexOf(this), 1) // Remove the survey from the list of active surveys
                     Survey.pastSurveys.push(this) // Add the survey to the list of past surveys
                     console.log("Concluded Survey")
                 })
@@ -173,4 +115,4 @@ class Survey {
     }
 }
 
-module.exports = { User, Survey }
+module.exports = { Survey }

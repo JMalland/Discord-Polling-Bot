@@ -1,5 +1,6 @@
 // Require the necessary discord.js classes
-const { Survey, User } = require('./survey.js') // Import the User and Survey class
+const { Survey } = require('./survey.js') // Import the Survey class
+const { User } = require('./user.js') // Import the User class
 const { Quiz } = require('./quiz.js') // Import the Quiz class
 const { Client, GatewayIntentBits, PermissionsBitField, quote, time, ReactionUserManager, CommandInteractionOptionResolver } = require('discord.js');
 const { token } = require('./config.json');
@@ -21,12 +22,18 @@ client.once('ready', () => {
 	return;
 });
 
+function getQuote(str) {
+	var match = str.match(/(?:"[^"]*"|^[^"]*$)/)
+	return(match == null ? null : match[0].replace(/"/g, ""))
+}
+
 function grabQuotes(content) {
-	results = []
-	while (content.includes("\"")) {
-		content = content.substring(content.indexOf("\"") + 1) // Trim the content to just inside the first quotation mark
-		results.push(content.substring(0, content.indexOf("\""))) // Add the Strings found within the quotes to the results
-		content = content.substring(content.indexOf("\"") + 1) // Trim the content to the end of the second quotation mark
+	var results = [] // Stores the list of quotes from the content
+	var temp = getQuote(content) // Store the immediate quote
+	while (temp != null && temp != "" && content.charAt(content.indexOf(temp) - 1) == '"') { // Keep going until there are no quotes to add
+		results.push(temp.trim()) // Add the next quote to the list
+		content = content.substring(content.indexOf(results[results.length - 1]) + results[results.length - 1].length + 1) // Trim the content to just beyond the end of the quote
+		temp = getQuote(content) // Store the immediate quote
 	}
 	return(results)
 }
@@ -54,26 +61,30 @@ function createSurvey(message) {
 	FORMAT = "F"
 	console.log("Conducting Survey")
 
-	quotes = grabQuotes(message.content) // Store all the quotes in the survey
-	emotes = grabEmotes(message.content, quotes) // Store all the emojis used in the survey
+	quotes = grabQuotes(message) // Store all the quotes in the survey
+	emotes = grabEmotes(message, quotes) // Store all the emojis used in the survey
 	
-	minutes = parseInt(message.content.substring(message.content.indexOf(" "), message.content.indexOf("\"")).trim()) // Cut out the time requirement, if it exists
-	selection = parseInt(message.content.substring(message.content.lastIndexOf("\"") + 1).trim()) // Cut out the maximum selection, if it's specified
-	minutes = isNaN(minutes) ? 30 : minutes // Default timer of the survey - 30 minutes
-	selection = isNaN(selection) ? 1 : selection // Default number of options a user may select
+	var numbers = message.substring(message.indexOf(" "), message.indexOf("\"")).trim().split(" ")
+	answers = parseInt(numbers[0]) // Assume the valid answer count is being set instead of the duration (Gets corrected later)
+	minutes = parseInt(numbers[1]) // Cut out the time requirement, if it exists
+	selection = parseInt(message.substring(message.lastIndexOf("\"") + 1).trim()) // Cut out the maximum selection, if it's specified
+	answers = answers <= 0 || isNaN(answers) ? 0 : answers // Default value of the correct answer count
+	minutes = minutes <= 0 || isNaN(minutes) ? 30 : minutes // Default timer of the survey - 30 minutes
+	selection = selection <= 0 || isNaN(selection) ? 1 : selection // Default number of options a user may select
 	
 	console.log(quotes)
 	console.log(emotes)
 
 	console.log("Selection: " + selection)
 
-	return(new Survey("*  **__Survey:__**  ", quotes, emotes, "*  **__Survey Results:__**  ", selection, minutes)) // Create the new survey
+	return(new Survey("*  **__Survey:__**  ", quotes, emotes, "*  **__Survey Results:__**  ", selection, minutes, answers)) // Create the new survey
 }
 
 client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
 		return
 	}
+	var content = message.content // Simplify message content
 	var user = User.getUser(message.author) // Create or get the user
 	var command = message.content.split(" ")[0] // Store the command executed
 	/* Survey Command:
@@ -82,12 +93,17 @@ client.on("messageCreate", async (message) => {
 	*      !survey "(string)" [EMOJI] ...
 	*      !survey "(string)" [EMOJI] ... (int)
 	*/
-	/*  Quiz Command:
-	*	   !CreateQuiz "(string)"	// Just the name of the quiz
-	*	   !AddToQuiz ... 			// Same rules as the '!survey' command. The correct answer must be the first one listed 
+	/*  Quiz Command: // May want to make the "(string)" quiz name a command specific to the user?
+	*	   !quiz "(string)"								// Just the name of the quiz
+	*	   !quiz "(string)" start						// Just the name of the quiz
+	*	   !quiz "(string)" add "(string)" !survey		// Specify the name of the question. Correct answers must be the first option listed.
+	*	   !quiz "(string)" remove "(string)" 			// Remove the question from the quiz
+	*	   !quiz "(string)" delete						// Delete the quiz
 	*/
 	if (command == "!survey") {
-		var survey = createSurvey(message) // Store the survey
+		var survey = createSurvey(content) // Store the survey
+		survey.duration = survey.validAnswers > 0 ? survey.validAnswers : survey.duration // Update the duration of the survey if necessary
+		survey.validAnswers = 0 // Set back to default since irrelevent anyways
 		message.channel.send({ // Send the formatted reply
 			files: [...message.attachments.values()],
 			content: survey.getMessage()
@@ -99,16 +115,31 @@ client.on("messageCreate", async (message) => {
 			// None ? 
 		})
 	}
-	else if (command == "!CreateQuiz") { // Starts the quiz building process for the user
-		user.makingQuiz = true // Sets the quiz status of the user
-		user.surveyQuiz = new Quiz()
-	}
-	else if (command == "!AddToQuiz") { // Adds the survey question to the quiz
-		var survey = createSurvey(message) // Store the quiz question as a survey
-		user.surveyQuiz.addQuestion(survey) // Add the survey to the quiz
-	}
-	else if (command == "!StartQuiz") { // Runs the quiz as a compilation of surveys
-		
+	else if (command == "!quiz") { // Starts the quiz building process for the user
+		var array = grabQuotes(content) // The individual components of the command
+		user.quiz = user.getQuiz() // Get the quiz from the user
+		if (content.includes("!quiz add")) { // Add a question to the quiz
+			content = content.substring(content.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
+			user.quiz.addQuestion(array[0], createSurvey(content)) // Add and name the quiz question
+		}
+		else if (content.includes("!quiz remove")) { // Remove a question from the quiz
+			user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
+		}
+		else if (content.includes("!quiz start")) {
+			message.channel.send({
+				content: user.quiz.getMessage(0)
+			}).then((msg) => {
+				user.quiz.message = msg
+				user.quiz.addOptions(0, 0)
+			})
+			.catch(() => {
+				// None ?
+			})
+		}
+		else if (content.includes("!quiz delete")) {
+			//user.removeQuiz(quiz.name) // Remove the quiz from the User and itself
+		}
+		// May want to notify/alert
 	}
 })
 
