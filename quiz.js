@@ -43,10 +43,6 @@ class Quiz {
     }
 
     getMessage(i) {
-        if (i >= this.questions.length) { // Quiz has looped through all the questions\
-            console.log("Quiz Has Concluded")
-            return // Quit the method
-        }
         var survey = this.questions[i] // Store the survey
         // Question Name Italisized ??? 
         var header = "*\t**__Time Remaining__:**  " + this.duration + " Seconds" // Create the quiz header
@@ -71,9 +67,6 @@ class Quiz {
     }
 
     addOptions(i, j) {
-        if (i >= this.questions.length) { // Looped through all the questions
-            return // Quit the method
-        }
         var survey = this.questions[i] // Store the survey
         if (j < survey.choices.length) {
             if (j == 0) {
@@ -95,13 +88,18 @@ class Quiz {
                     Survey.pastSurveys.push(survey) // Deactivate the survey
                     this.elapsed = 25 // Set half of the duration timers
                     this.message.edit(this.getAnswers(i)).then((msg) => { // Display the answers to the question
+                        survey.message = null
                         this.message = msg // Update the message content
                         console.log("Displayed Answers #" + (i + 1))
+                        if (i + 1 == this.questions.length) { // Looped through all the questions
+                            console.log("Quiz Has Concluded")
+                            return // Quit the method
+                        }
                         setTimeout(() => { // Freeze the answers for the alotted interval
                             console.log("Shifting to the next question...")
                             this.duration = 25 // Set the other half of the duration timers
                             this.message.reactions.removeAll() // Remove all reactions from the message
-                            survey.message = null // Disassociate the survey's message with the quiz's message
+                            //survey.message = null // Disassociate the survey's message with the quiz's message
                             this.message.edit(this.getMessage(i + 1)).then((msg) => { // Update the question display
                                 this.message = msg // Update the message content
                                 this.addOptions(i + 1, 0) // Add the reactions to the next question.
