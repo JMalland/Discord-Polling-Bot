@@ -131,12 +131,13 @@ class Quiz {
                         setTimeout(() => { // Freeze the answers for the alotted interval
                             console.log("Shifting to the next question...")
                             this.duration = 25 // Set the other half of the duration timers
-                            this.message.reactions.removeAll() // Remove all reactions from the message
-                            survey.message = null // Disassociate the survey's message with the quiz's message
-                            this.message.edit(this.getMessage(i + 1)).then((msg) => { // Update the question display
-                                this.message = msg // Update the message content
-                                this.addOptions(i + 1, 0) // Add the reactions to the next question.
-                                timer = clearInterval(timer) // Clear the timer
+                            this.message.reactions.removeAll().then(() => { // Remove all reactions from the message
+                                survey.message = null // Disassociate the survey's message with the quiz's message
+                                this.message.edit(this.getMessage(i + 1)).then((msg) => { // Update the question display
+                                    this.message = msg // Update the message content
+                                    this.addOptions(i + 1, 0) // Add the reactions to the next question.
+                                    timer = clearInterval(timer) // Clear the timer
+                                })
                             })
                         }, this.interval * 1000)
                     })
