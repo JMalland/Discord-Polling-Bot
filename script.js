@@ -165,6 +165,9 @@ client.on("messageCreate", async (message) => {
 		}
 	}
 })
+.catch(() => {
+	// None ?
+})
 
 client.on("messageReactionAdd", async (reaction, user) => {
 	if (user.bot) { // The user is a bot
