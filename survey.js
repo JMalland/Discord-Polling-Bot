@@ -8,6 +8,7 @@ class Survey {
     static activeSurveys = [] // Store all current Survey objects
     static pastSurveys = [] // Store all previous Survey objects
     
+    isRunning = false // Whether or not the survey is active
     spaces = "    " // Number of spaces between each bullet point
     footer = "" // The message displayed with the results
     message = null // The Discord message this survey was sent in
@@ -42,7 +43,8 @@ class Survey {
         for (var i=0; i<options.length - 1; i++) { // Run the loop for as many options
             this.results.push(0) // Set the default poll value
         }
-        Survey.activeSurveys.push(this) // Add the survey to the active list
+        this.isRunning = true // Set the survey as active
+        Survey.activeSurveys.push(this) // Set the survey as active 
     }
 
     static findSurvey(message) { // Return the survey with that message, if there is one

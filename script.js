@@ -2,6 +2,7 @@
 const { Survey } = require('./survey.js') // Import the Survey class
 const { User } = require('./user.js') // Import the User class
 const { Quiz } = require('./quiz.js') // Import the Quiz class
+//const { Item } = require('./item.js') // Import the Item class
 const { Client, GatewayIntentBits, PermissionsBitField, quote, time, ReactionUserManager, CommandInteractionOptionResolver } = require('discord.js');
 const { token } = require('./config.json');
 
