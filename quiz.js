@@ -120,6 +120,7 @@ class Quiz {
                     Survey.pastSurveys.push(survey) // Deactivate the survey
                     this.elapsed = this.default_time // Set half of the duration timers
                     this.message.edit(this.getAnswers(i)).then((msg) => { // Display the answers to the question
+                        timer = clearInterval(timer) // Clear the timer
                         this.message = msg // Update the message content
                         console.log("Displayed Answers #" + (i + 1))
                         if (i + 1 == this.questions.length) { // Looped through all the questions
@@ -129,7 +130,6 @@ class Quiz {
                                 this.elapsed = this.default_time
                                 this.duration = this.default_time
                                 this.interval = this.default_interval
-                                timer = clearInterval(timer) // Clear the timer
                                 // None ?
                             })
                             return // Quit the method
@@ -142,7 +142,6 @@ class Quiz {
                                 this.message.edit(this.getMessage(i + 1)).then((msg) => { // Update the question display
                                     this.message = msg // Update the message content
                                     this.addOptions(i + 1, 0) // Add the reactions to the next question.
-                                    timer = clearInterval(timer) // Clear the timer
                                 })
                             })
                         }, this.interval * 1000)
