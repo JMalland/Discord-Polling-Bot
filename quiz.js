@@ -66,6 +66,36 @@ class Quiz {
         return(header + "\n" + spacer + message + "\n" + spacer)
     }
 
+    getResults() {
+        var header = "*\t**__Quit Has Concluded__**"
+        var message = "\n*"
+        for (var i=0; i<this.questions.length; i++) {
+            var survey = this.questions[i]
+            var correct = 0 // Total correct votes cast
+            var total = 0 // Total votes cast
+            for (var j=0; j<survey.results.length; j++) { // Loop through each option
+                total += survey.results[j] // Add the total votes cast
+                if (j + 1 <= survey.validAnswers) { // The answer is valid
+                    correct += survey.results[j] // Add the correct votes cast
+                }
+            }
+            message += "\n*\t*__" + this.labels[i] + ":__*\n*\t\t" + (100 * correct / total).toFixed(2) + "% of users got it right."
+        }
+        var spacer = "*   ".repeat(16).trim() // Create the spacer
+        // \/ NOT NEEDED ??? \/
+        for (var i of message.split("\n")) { // Loop through each line to see if will fit in spacer
+            var count = 0 // Count the number of characters displayed per line
+            for (var j of i) { // Loop through each character in the line
+                count += j == '\t' ? 4 : 1 // Add the number of characters displayed
+            }
+            if (count/3 > 16) { // Display length is larger than the spacer
+                spacer = "*   ".repeat(count/3).trim() // Increase the spacer length
+            }
+        }
+        message += "\n*"
+        return(header + "\n" + spacer + message + "\n" + spacer)
+    }
+
     addOptions(i, j) {
         var survey = this.questions[i] // Store the survey
         if (j < survey.choices.length) {
@@ -93,6 +123,9 @@ class Quiz {
                         if (i + 1 == this.questions.length) { // Looped through all the questions
                             console.log("Quiz Has Concluded")
                             survey.message = null
+                            this.message.edit(this.getResults()).then((msg) => {
+                                // None ?
+                            })
                             return // Quit the method
                         }
                         setTimeout(() => { // Freeze the answers for the alotted interval
