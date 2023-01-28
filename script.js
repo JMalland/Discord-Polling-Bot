@@ -141,6 +141,9 @@ client.on("messageCreate", async (message) => {
 			for (var line of content.split("\n")) {
 				var array = grabQuotes(line.substring(line.indexOf('"'))) // The individual components of the command
 				user.quiz = user.getQuiz() // Get the quiz from the user
+				if (user.quiz.isRunning) { // Quiz is actively running
+					return // Quit the method
+				}
 				if (line.includes("!quiz add")) { // Add a question to the quiz
 					line = line.substring(line.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
 					user.quiz.addQuestion(array[0], createSurvey(line)) // Add and name the quiz question
@@ -149,7 +152,7 @@ client.on("messageCreate", async (message) => {
 				else if (line.includes("!quiz remove")) { // Remove a question from the quiz
 					user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
 				}
-				else if (line.includes("!quiz start") && !user.quiz.isRunning) { // User wishes to start their quiz
+				else if (line.includes("!quiz start")) { // User wishes to start their quiz
 					user.quiz.isRunning = true
 					message.channel.send({
 						content: user.quiz.getMessage(0)
@@ -158,6 +161,7 @@ client.on("messageCreate", async (message) => {
 						user.quiz.addOptions(0, 0)
 					})
 					.catch(() => {
+						console.log("Error")
 						user.quiz.isRunning = false
 						// None ?
 					})
