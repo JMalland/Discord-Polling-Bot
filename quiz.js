@@ -1,6 +1,7 @@
 const { Survey } = require("./survey.js");
 
 class Quiz {
+    isRunning = false // Whether or not a quiz is running.
     message = null // The Discord message the quiz is being displayed on
     questions = [] // List of survey questions for the quiz
     labels = [] // List of names for each question
@@ -130,6 +131,7 @@ class Quiz {
                                 this.elapsed = this.default_time
                                 this.duration = this.default_time
                                 this.interval = this.default_interval
+                                this.isRunning = false
                                 // None ?
                             })
                             return // Quit the method

@@ -149,7 +149,8 @@ client.on("messageCreate", async (message) => {
 				else if (line.includes("!quiz remove")) { // Remove a question from the quiz
 					user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
 				}
-				else if (line.includes("!quiz start")) { // User wishes to start their quiz
+				else if (line.includes("!quiz start") && !user.quiz.isRunning) { // User wishes to start their quiz
+					user.quiz.isRunning = true
 					message.channel.send({
 						content: user.quiz.getMessage(0)
 					}).then((msg) => {
@@ -157,6 +158,7 @@ client.on("messageCreate", async (message) => {
 						user.quiz.addOptions(0, 0)
 					})
 					.catch(() => {
+						user.quiz.isRunning = false
 						// None ?
 					})
 				}
@@ -164,6 +166,8 @@ client.on("messageCreate", async (message) => {
 					user.quiz = new Quiz() // Create a whole new quiz	
 				}
 			}
+
+			message.delete() // Delete the user's message to avoid knowledge of the correct answers
 		}
 	}
 	catch (e) {
