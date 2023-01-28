@@ -106,67 +106,69 @@ function createSurvey(message) {
 }
 
 client.on("messageCreate", async (message) => {
-	if (message.author.bot) {
-		return
-	}
-	var content = message.content // Simplify message content
-	var user = User.getUser(message.author) // Create or get the user
-	var command = message.content.split(" ")[0] // Store the command executed
-	/* Survey Command:
-	*	   !survey  [--time | -t] [--choices | -c] [--answers | -a] <question> <reactions...> <options...>
-	*/
-	/*  Quiz Command:
-	*	   !quiz add <title> [--choices | -c] [--answers | -a] <question> <reactions...> <options...>
-	*	   !quiz remove <title>		// Remove the indexed question from the quiz
-	*	   !quiz clear				// Delete the quiz
-	*	   !quiz start				// Run the quiz
-	*/
-	if (command == "!survey") {
-		var survey = createSurvey(content) // Store the survey
-		survey.duration = survey.validAnswers > 0 ? survey.validAnswers : survey.duration // Update the duration of the survey if necessary
-		survey.validAnswers = 0 // Set back to default since irrelevent anyways
-		message.channel.send({ // Send the formatted reply
-			files: [...message.attachments.values()],
-			content: survey.getMessage()
-		}).then((message) => { // Add the options to the survey
-			survey.message = message // Attach the message to the survey
-			survey.addOptions() // Add the reactions to the survey message
-		})
-		.catch(() => {
-			// None ? 
-		})
-	}
-	else if (command == "!quiz") { // Starts the quiz building process for the user
-		for (var line of content.split("\n")) {
-			var array = grabQuotes(line.substring(line.indexOf('"'))) // The individual components of the command
-			user.quiz = user.getQuiz() // Get the quiz from the user
-			if (line.includes("!quiz add")) { // Add a question to the quiz
-				line = line.substring(line.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
-				user.quiz.addQuestion(array[0], createSurvey(line)) // Add and name the quiz question
-				console.log("Added Question: " + array[0])
-			}
-			else if (line.includes("!quiz remove")) { // Remove a question from the quiz
-				user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
-			}
-			else if (line.includes("!quiz start")) { // User wishes to start their quiz
-				message.channel.send({
-					content: user.quiz.getMessage(0)
-				}).then((msg) => {
-					user.quiz.message = msg
-					user.quiz.addOptions(0, 0)
-				})
-				.catch(() => {
-					// None ?
-				})
-			}
-			else if (line.includes("!quiz clear")) { // User wishes to clear their quiz
-				user.quiz = new Quiz() // Create a whole new quiz	
+	try {
+		if (message.author.bot) {
+			return
+		}
+		var content = message.content // Simplify message content
+		var user = User.getUser(message.author) // Create or get the user
+		var command = message.content.split(" ")[0] // Store the command executed
+		/* Survey Command:
+		*	   !survey  [--time | -t] [--choices | -c] [--answers | -a] <question> <reactions...> <options...>
+		*/
+		/*  Quiz Command:
+		*	   !quiz add <title> [--choices | -c] [--answers | -a] <question> <reactions...> <options...>
+		*	   !quiz remove <title>		// Remove the indexed question from the quiz
+		*	   !quiz clear				// Delete the quiz
+		*	   !quiz start				// Run the quiz
+		*/
+		if (command == "!survey") {
+			var survey = createSurvey(content) // Store the survey
+			survey.duration = survey.validAnswers > 0 ? survey.validAnswers : survey.duration // Update the duration of the survey if necessary
+			survey.validAnswers = 0 // Set back to default since irrelevent anyways
+			message.channel.send({ // Send the formatted reply
+				files: [...message.attachments.values()],
+				content: survey.getMessage()
+			}).then((message) => { // Add the options to the survey
+				survey.message = message // Attach the message to the survey
+				survey.addOptions() // Add the reactions to the survey message
+			})
+			.catch(() => {
+				// None ? 
+			})
+		}
+		else if (command == "!quiz") { // Starts the quiz building process for the user
+			for (var line of content.split("\n")) {
+				var array = grabQuotes(line.substring(line.indexOf('"'))) // The individual components of the command
+				user.quiz = user.getQuiz() // Get the quiz from the user
+				if (line.includes("!quiz add")) { // Add a question to the quiz
+					line = line.substring(line.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
+					user.quiz.addQuestion(array[0], createSurvey(line)) // Add and name the quiz question
+					console.log("Added Question: " + array[0])
+				}
+				else if (line.includes("!quiz remove")) { // Remove a question from the quiz
+					user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
+				}
+				else if (line.includes("!quiz start")) { // User wishes to start their quiz
+					message.channel.send({
+						content: user.quiz.getMessage(0)
+					}).then((msg) => {
+						user.quiz.message = msg
+						user.quiz.addOptions(0, 0)
+					})
+					.catch(() => {
+						// None ?
+					})
+				}
+				else if (line.includes("!quiz clear")) { // User wishes to clear their quiz
+					user.quiz = new Quiz() // Create a whole new quiz	
+				}
 			}
 		}
 	}
-})
-.catch(() => {
-	// None ?
+	catch (e) {
+		// None ?
+	}
 })
 
 client.on("messageReactionAdd", async (reaction, user) => {
