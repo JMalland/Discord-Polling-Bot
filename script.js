@@ -143,14 +143,14 @@ client.on("messageCreate", async (message) => {
 			if (line.includes("!quiz add")) { // Add a question to the quiz
 				line = line.substring(line.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
 				user.quiz.addQuestion(array[0], createSurvey(line)) // Add and name the quiz question
-				line.log("Added Question: " + array[0])
+				console.log("Added Question: " + array[0])
 			}
 			else if (line.includes("!quiz remove")) { // Remove a question from the quiz
 				user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
 			}
 			else if (line.includes("!quiz start")) { // User wishes to start their quiz
 				message.channel.send({
-					line: user.quiz.getMessage(0)
+					content: user.quiz.getMessage(0)
 				}).then((msg) => {
 					user.quiz.message = msg
 					user.quiz.addOptions(0, 0)
