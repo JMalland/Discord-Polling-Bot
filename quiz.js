@@ -6,9 +6,11 @@ class Quiz {
     labels = [] // List of names for each question
     validity = [] // 2D List of booleans for whether or not the choices are right
     index = 0 // The index of the current question being ran
-    interval = 5 // The number of seconds to display the right/wrong answers
-    duration = 25 // The remaining duration of the quiz questions in seconds
-    elapsed = 25 // The time elapsed (should match duration before time changes)
+    default_time = 30 // Default time of the question timer
+    default_interval = 10 // Default time of the interval timer
+    interval = 10 // The number of seconds to display the right/wrong answers
+    duration = 30 // The remaining duration of the quiz questions in seconds
+    elapsed = 30 // The time elapsed (should match duration before time changes)
 
     constructor() {
 
@@ -116,7 +118,7 @@ class Quiz {
                 if (this.elapsed == 0) { // The timer for the question has ended
                     Survey.activeSurveys.splice(Survey.activeSurveys.indexOf(survey), 1) // Remove the survey from the active list
                     Survey.pastSurveys.push(survey) // Deactivate the survey
-                    this.elapsed = 25 // Set half of the duration timers
+                    this.elapsed = this.default_time // Set half of the duration timers
                     this.message.edit(this.getAnswers(i)).then((msg) => { // Display the answers to the question
                         this.message = msg // Update the message content
                         console.log("Displayed Answers #" + (i + 1))
@@ -124,13 +126,16 @@ class Quiz {
                             console.log("Quiz Has Concluded")
                             survey.message = null
                             this.message.edit(this.getResults()).then((msg) => {
+                                this.elapsed = this.default_time
+                                this.duration = this.default_time
+                                this.interval = this.default_interval
                                 // None ?
                             })
                             return // Quit the method
                         }
                         setTimeout(() => { // Freeze the answers for the alotted interval
                             console.log("Shifting to the next question...")
-                            this.duration = 25 // Set the other half of the duration timers
+                            this.duration = this.default_time // Set the other half of the duration timers
                             this.message.reactions.removeAll().then(() => { // Remove all reactions from the message
                                 survey.message = null // Disassociate the survey's message with the quiz's message
                                 this.message.edit(this.getMessage(i + 1)).then((msg) => { // Update the question display
