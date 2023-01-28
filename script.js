@@ -137,29 +137,31 @@ client.on("messageCreate", async (message) => {
 		})
 	}
 	else if (command == "!quiz") { // Starts the quiz building process for the user
-		var array = grabQuotes(content.substring(content.indexOf('"'))) // The individual components of the command
-		user.quiz = user.getQuiz() // Get the quiz from the user
-		if (content.includes("!quiz add")) { // Add a question to the quiz
-			content = content.substring(content.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
-			user.quiz.addQuestion(array[0], createSurvey(content)) // Add and name the quiz question
-			console.log("Added Question: " + array[0])
-		}
-		else if (content.includes("!quiz remove")) { // Remove a question from the quiz
-			user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
-		}
-		else if (content.includes("!quiz start")) { // User wishes to start their quiz
-			message.channel.send({
-				content: user.quiz.getMessage(0)
-			}).then((msg) => {
-				user.quiz.message = msg
-				user.quiz.addOptions(0, 0)
-			})
-			.catch(() => {
-				// None ?
-			})
-		}
-		else if (content.includes("!quiz clear")) { // User wishes to clear their quiz
-			user.quiz = new Quiz() // Create a whole new quiz	
+		for (var line of content.split("\n")) {
+			var array = grabQuotes(line.substring(line.indexOf('"'))) // The individual components of the command
+			user.quiz = user.getQuiz() // Get the quiz from the user
+			if (line.includes("!quiz add")) { // Add a question to the quiz
+				line = line.substring(line.indexOf(array[0]) + array[0].length + 1) // Skip past the sub-command
+				user.quiz.addQuestion(array[0], createSurvey(line)) // Add and name the quiz question
+				line.log("Added Question: " + array[0])
+			}
+			else if (line.includes("!quiz remove")) { // Remove a question from the quiz
+				user.quiz.removeQuestion(array[0]) // Remove the question from the quiz
+			}
+			else if (line.includes("!quiz start")) { // User wishes to start their quiz
+				message.channel.send({
+					line: user.quiz.getMessage(0)
+				}).then((msg) => {
+					user.quiz.message = msg
+					user.quiz.addOptions(0, 0)
+				})
+				.catch(() => {
+					// None ?
+				})
+			}
+			else if (line.includes("!quiz clear")) { // User wishes to clear their quiz
+				user.quiz = new Quiz() // Create a whole new quiz	
+			}
 		}
 	}
 })
