@@ -129,6 +129,7 @@ class Quiz {
                                 this.elapsed = this.default_time
                                 this.duration = this.default_time
                                 this.interval = this.default_interval
+                                timer = clearInterval(timer) // Clear the timer
                                 // None ?
                             })
                             return // Quit the method
