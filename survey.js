@@ -47,7 +47,7 @@ class Survey {
 
     static findSurvey(message) { // Return the survey with that message, if there is one
         for (var s of [...Survey.activeSurveys, ...Survey.pastSurveys]) { // Loop through all surveys
-            if (s.message == message) { // The message matches the current survey
+            if (s.message != null && s.message.id == message.id) { // The message matches the current survey
                 return(s) // Return the survey
             }
         }
