@@ -78,7 +78,7 @@ class Quiz {
             var total = 0 // Total votes cast
             for (var j=0; j<survey.results.length; j++) { // Loop through each option
                 total += survey.results[j] // Add the total votes cast
-                if (validity[i][j]) { // The answer is valid
+                if (this.validity[i][j]) { // The answer is valid
                     correct += survey.results[j] // Add the correct votes cast
                 }
             }
@@ -132,6 +132,7 @@ class Quiz {
                                 this.duration = this.default_time
                                 this.interval = this.default_interval
                                 this.isRunning = false
+                                this.message.reactions.removeAll()
                                 // None ?
                             })
                             return // Quit the method
